@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+cd .awx#!/usr/bin/env bash
 
 # Install packages required to setup AWX
 sudo yum -y install epel-release
@@ -8,7 +8,7 @@ sudo yum -y install -y wget git gettext ansible docker nodejs npm gcc-c++ bzip2 
 sudo yum -y install python34-setuptools
 alias python=/usr/local/bin/python2.7
 pip install docker
-pip install docker-compose
+pip install docker-compose==1.23.2
 
 # Creating the docker storage setup to ensure we have a docker thin pool 
 cat <<EOF > /etc/sysconfig/docker-storage-setup
