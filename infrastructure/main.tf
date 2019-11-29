@@ -16,27 +16,24 @@ resource "ibm_is_subnet" "awxsubnet" {
   total_ipv4_address_count = 256
 }
 
-
 data "ibm_resource_group" "group" {
   name = "${var.resource_group_name}"
 }
 
 resource "ibm_is_vpc" "awxvpc" {
-  name = "${var.vpc_name}"
+  name           = "${var.vpc_name}"
   resource_group = "${data.ibm_resource_group.group.id}"
 }
 
 resource "ibm_is_ssh_key" "sshkey" {
-    name = "${var.ssh_keyname}"
-    public_key = "${var.ssh_public_key}"
+  name       = "${var.ssh_keyname}"
+  public_key = "${var.ssh_public_key}"
 }
-
 
 resource ibm_is_security_group "awxsg" {
   name = "${var.basename}-awxsg"
   vpc  = "${ibm_is_vpc.awxvpc.id}"
 }
-
 
 data ibm_is_image "image1" {
   #name = "ubuntu-18.04-amd64"
@@ -45,6 +42,21 @@ data ibm_is_image "image1" {
 
 resource ibm_is_instance "awxvsi" {
   name           = "${var.basename}-awxvsi"
+  vpc            = "${ibm_is_vpc.awxvpc.id}"
+  zone           = "${var.subnet_zone}"
+  keys           = ["${ibm_is_ssh_key.sshkey.id}"]
+  image          = "${data.ibm_is_image.image1.id}"
+  profile        = "cc1-2x4"
+  resource_group = "${data.ibm_resource_group.group.id}"
+
+  primary_network_interface = {
+    subnet          = "${ibm_is_subnet.awxsubnet.id}"
+    security_groups = ["${ibm_is_security_group.awxsg.id}"]
+  }
+}
+
+resource ibm_is_instance "vsi" {
+  name           = "${var.basename}-vsi"
   vpc            = "${ibm_is_vpc.awxvpc.id}"
   zone           = "${var.subnet_zone}"
   keys           = ["${ibm_is_ssh_key.sshkey.id}"]
@@ -71,7 +83,7 @@ output sshcommand {
 resource "ibm_is_security_group_rule" "awx_ingress_ssh_all1" {
   group     = "${ibm_is_security_group.awxsg.id}"
   direction = "inbound"
-  remote    = "0.0.0.0/0"                     
+  remote    = "0.0.0.0/0"
 
   tcp = {
     port_min = 22
@@ -83,7 +95,7 @@ resource "ibm_is_security_group_rule" "awx_ingress_ssh_all1" {
 resource "ibm_is_security_group_rule" "awx_ingress_http" {
   group     = "${ibm_is_security_group.awxsg.id}"
   direction = "inbound"
-  remote    = "0.0.0.0/0" 
+  remote    = "0.0.0.0/0"
 
   tcp = {
     port_min = 80
@@ -91,13 +103,13 @@ resource "ibm_is_security_group_rule" "awx_ingress_http" {
   }
 }
 
-
 # Enable Ingress/Inbound on port 443 for https
 resource "ibm_is_security_group_rule" "awx_egress_https" {
   group     = "${ibm_is_security_group.awxsg.id}"
   direction = "outbound"
+
   #remote    = "${ibm_is_security_group.sg1.id}"
-  remote    = "0.0.0.0/0"
+  remote = "0.0.0.0/0"
 
   tcp = {
     port_min = 443
@@ -139,4 +151,3 @@ resource "ibm_is_security_group_rule" "awx_egress_dns_udp" {
     port_max = 53
   }
 }
-
